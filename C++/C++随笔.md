@@ -121,3 +121,45 @@ if(OPENMP_FOUND)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 ```
+
+##### 10.在存在类型推导的情况（如模板和auto）下，&&可能会变成万能引用（可以引用一个左值也可以引用一个右值）而非右值引用
+
+模板中的万能引用
+
+```
+template<typename T>
+void func(T &&param) {
+  param++;
+  printf("%d\n", param);
+}
+
+int main() {
+  func(int{2});
+
+  int a = 10;
+  func(a);
+
+  auto &&param = 10;
+  param = 20;
+  printf("%d\n", param);
+}
+```
+
+输出：
+
+```
+3
+11
+20
+```
+
+和常引用const &相比，万能引用能够修改临时对象的值，而常引用不可以。
+
+##### 11.thread相关的类有许多都是不能复制只能移动的
+
+```
+auto task_copy = packaged_task;//编译错误
+auto task_move = std::move(packaged_task);//编译通过
+```
+
+##### 12.  CRT会确保在main调用之前构造所有的静态对象（不论在哪个文件中，只要被打包进可执行文件就会执行其构造函数）
