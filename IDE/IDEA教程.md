@@ -112,3 +112,7 @@ psvm，sout，for，fori，psfs
 （1）Structures面板
 
 （2）点击标签栏类名
+
+##### 6.选择
+
+鼠标中键，多行编辑
