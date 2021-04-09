@@ -2,7 +2,7 @@
 
 [TOC]
 
-##### 1.避免在模型中使用numpy操作，可能会失效也可能无法导出
+##### 1.避免在模型中使用numpy和math操作，可能会失效也可能无法导出
 
 例如使用np.random.rand()会变成常量：
 
@@ -21,6 +21,8 @@ class Net(torch.nn.Module):
 ```
 %1 : Float(requires_grad=0, device=cpu) = onnx::Constant[value={0.124173}]()
 ```
+
+使用math.sqrt同样也不能导出，其结果会变成常量，这种情况会报警告：converting a tensor to a python float might cause the trace to be incorrect。
 
 使用np.random.randn()则会无法导出，且报出意义不明的错误
 
@@ -45,7 +47,7 @@ RuntimeError: output 1 ( 1.6503
 
 例如torch.onnx.export中的input_names
 
-
+##### 3.有时候因为未知的原因，onnx导出的模型会凭空插入一些类型转换导致运算符两侧张量数据类型不一致而失败
 
 ##### 不能使用的高级API
 
