@@ -128,16 +128,22 @@ scripted_model = torch.jit.script(model)
 
 ## 二.Onnx规范
 
+### 1.概述
+
 Onnx中的”推理/训练模型“意为一个无/有状态的函数，它有以下由高到低的几个层级：
 
-①onnx.ModelProto：模型，包含一些描述信息（如onnx版本、op_set信息、onnx导出工具信息）和一个Graph
+##### ①onnx.ModelProto
 
-②onnx.GraphProto：图，包含模型参数和运算节点。构成图的节点以拓扑排序保存（因此不能有环），每个节点代表一个Op。
+模型，包含一些描述信息（如onnx版本、op_set信息、onnx导出工具信息）和一个Graph
+
+##### ②onnx.GraphProto
+
+图，包含模型参数和运算节点。构成图的节点以拓扑排序保存（因此不能有环），每个节点代表一个Op。
 
 	1. node:List[Node]：构成计算图的拓扑排序保存的节点列表
- 	2. input:List[ValueInfo]：图的输入参数
- 	3. initializer:List[Tensor]：命名张量列表，通常用于保存网络的权重、偏置等参数
- 	4. output:List[ValueInfo]:网络的输出参数。
+	2. input:List[ValueInfo]：图的输入参数
+	3. initializer:List[Tensor]：命名张量列表，通常用于保存网络的权重、偏置等参数。可以来自外部文件，这时网络中的tensor需要提供外部文件名不能提供值
+	4. output:List[ValueInfo]:网络的输出参数。
 
 其中ValueInfo示意如下：
 
@@ -151,14 +157,68 @@ struct ValueInfo{
 
 它用于Graph指定inputs和outputs的属性。
 
-③onnx.NodeProto：节点，主要包含一个Op的名称。Op的参数有inputs和attributes，前者是数据，后者是配置（例如卷积层的kernal_size,stride等）。一张图中所有节点的output的name必须是唯一的。如果有子图（例如If和Loop节点），子图在attributes中。
+而Tensor示意如下（不符合数组语法）：
 
-1. input:List[string]：传递给Op作为inputs的值，只能为图的input或initializer中的一个张量或其他Node的输出
-2. output:List[string]：接受Op的输出，只能为graph中的另一个节点的输入或图的输出
-3. attribute:List[Attribute]：传递给Op的配置信息
+```c
+struct Tensor{
+    int32 		data_type;
+    ...
+    bytes[]		raw_data;
+    TensorShape[]		shape;
+}
+```
+
+其中TensorShape示意：
+
+```c
+struct TensorShape{
+    struct Dimesion{
+        int64 	dim_value;
+    	string	dim_param;
+    }
+    Dimesion[]	dims;
+}
+```
+
+Dimesion两个变量只会有一个有效，一个维度要么是一个数字，如128，要么是一个字符串，如dynamic_axis_1。输入和输出的形状需要指定秩（即有几个维度），不过每个维度具体的大小则可以是不确定的。
+
+##### ③onnx.NodeProto
+
+节点，主要包含一个Op的名称。Op的参数有inputs和attributes，前者是数据，后者是配置（例如卷积层的kernal_size,stride等）。一张图中所有节点的output的name必须是唯一的。如果有子图（例如If和Loop节点），子图在attributes中。
+
+1. input:List[string]：传递给Op作为inputs的值，只能为图的input或initializer中的一个张量或其他Node的输出（的名称）。当选择其他Node的输出作为输入时，将会建立一条边（Edge）。子图中的节点的输入可以指向外部图也可以指向子图中的值，外部的节点不能指向子图中的值。
+2. output:List[string]：接受Op的输出，只能为graph中的另一个节点的输入或图的输出（的名称）
+3. attribute:List[Attribute]：常量，传递给Op的配置信息
 4. op_type：节点调用的Op的名称（如Gather、If）
 
-### 1.常见Op
+ONNX表示中的值分为两种：inputs/outputs值和attribute值，前者在运行时确定（包括来自Graph和Node输入输出、initializers，其中initializers可以来自外部的文件），后者是静态的文本。
+
+Attribute中可能存放不同数据类型的值，ONNX的做法是定义一个结构里面有所有可能的数据类型，然后1个Attribute中只有1个有效，示意如下（不符合数组语法）：
+
+```c
+struct Attribute{
+    string name;
+    string doc_string;
+    Attribute Type;
+    
+    float f;
+    int64 i;
+    byte[] s;
+    Tensor t;
+    Graph g;
+    float[] floats;
+    int64[] ints;
+    byte[][] strings;
+    Tensor[] tensors;
+    Graph[] graphs;
+}
+```
+
+
+
+
+
+### 2.常见Op
 
 ##### ①Contant
 
@@ -182,7 +242,7 @@ onnx::Cast[to=1](%input)
 
 其中to为枚举TensorProtoDataType，从1开始，依次为FLOAT、UINT8、INT8、UINT16、INT16、INT32、INT64、STRING、BOOL、FLOAT16、DOUBLE、UINT32、UINT64、COMPLEX64。例如to=1意为将input的dtype转成FLOAT（32位浮点），to=7意为将input的dtype转为INT64。
 
-### 2.PyTorch导出信息
+### 3.PyTorch导出信息
 
 如果打印onnx.load().graph（即ModelProto.graph），会发现打印了一个链表，可读性很差。如果在PyTorch导出时设置verbose=True，会获得一份相对可读的模型信息，如下：
 
@@ -195,7 +255,7 @@ graph(%0 : Float(2, 3, 4, strides=[12, 4, 1], requires_grad=0, device=cpu)):
 
 graph就像一个函数，%0是参数（参数名是"0"），“:”后是其数据类型，Float类型，形状为[2,3,4]，stides则是每个维度单位偏移（因为Tensor底层都是线性存储的，使用坐标定位就要用到便宜，例如坐标(0,1,2)实际在$rank=0\times 12+1\times4+2\times1=6$的位置上），requires_grad为是否参与求导，device为所在设备。
 
-graph中可以看到一些赋值预算，是%1等变量=一个onnx运算符。一个onnx运算符类型类似一个可调用对象（torch.nn.Module），方括号[]中的是运算符的属性，类似可调用对象构造函数的参数（如nn.Linear的in_features: int, out_features），而小括号中是其运算的参数。例如`%2 = onnx::Gather[axis=0](%0, %1)`可以理解为
+graph中可以看到一些赋值预算，是%1等变量 = 一个onnx运算符的输出。一个onnx运算符类型类似一个可调用对象（torch.nn.Module），方括号[]中的是运算符的属性（Attribute），类似可调用对象构造函数的参数（如nn.Linear的in_features: int, out_features），而小括号中是其运算的参数。例如`%2 = onnx::Gather[axis=0](%0, %1)`可以理解为
 
 ```
 gather = onnx.Gather(asis=0)

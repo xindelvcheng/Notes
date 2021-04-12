@@ -107,6 +107,10 @@ psvm，sout，for，fori，psfs
 
 `$end$​`：结束时光标位置
 
+模板变量函数
+
+<img src="illustrations/image-20210412102639510.png" alt="image-20210412102639510" style="zoom:67%;" />
+
 #### 5.导航
 
 （1）Structures面板

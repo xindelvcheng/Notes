@@ -49,9 +49,11 @@ RuntimeError: output 1 ( 1.6503
 
 ##### 3.有时候因为未知的原因，onnx导出的模型会凭空插入一些类型转换导致运算符两侧张量数据类型不一致而失败
 
+例如当使用//或%时
+
 ##### 不能使用的高级API
 
-截至opset_version=12明确不能使用的有：
+截至opset_version=12明确不能直接使用的有：
 
 torch.linspace
 

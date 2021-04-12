@@ -235,19 +235,25 @@ x.view(shape) 	# OK
 x.view(*shape)	# 报错
 ```
 
-
-
 ##### 10.不能转成ndarray使用numpy操作
 
 对trace和script两种导出方式都是如此
 
+##### 11.不能将torch.nn.Module作为参数
 
+```python
+# 报错
+
+@torch.jit.script
+def fc(linear_model: torch.nn.Module, x):
+    return linear_model(x)
+```
 
 
 
 ##### 不能使用的高级API
 
-截至opset_version=12明确不能使用的有：
+截至opset_version=12明确不能直接使用的有：
 
 torch.linspace
 
