@@ -189,5 +189,3 @@ while True:
     connection_socket.send(b'Message from python socket')
 ```
 
-
-

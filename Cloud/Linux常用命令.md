@@ -173,6 +173,14 @@ create database ihome default charset=utf8；
 
 使用16进制查看文本文件
 
+#### 5.添加环境变量
+
+```bash
+$ export PATH="/opt/STM/STLinux-2.3/devkit/sh4/bin:$PATH"
+```
+
+
+
 ## 四.磁盘管理
 
 #### 1. 查看磁盘空间
