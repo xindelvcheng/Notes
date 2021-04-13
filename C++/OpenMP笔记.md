@@ -20,3 +20,12 @@ OpenMP for cost time:0.102000 s
 OpenMP simd cost time:0.351000 s
 ```
 
+##### 2.在CMAKE中启用OpenMP
+
+```cmake
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(Test PUBLIC OpenMP::OpenMP_CXX)
+endif()
+```
+

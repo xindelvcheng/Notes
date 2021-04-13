@@ -20,7 +20,7 @@ $ pip install pybind11
 $ git clone git@github.com:pybind/pybind11.git
 ```
 
-##### ②编译pybind11
+##### ②源码编译pybind11测试用例
 
 ```bash
 $ cd pybind11

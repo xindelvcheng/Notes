@@ -193,7 +193,7 @@ Dimesion两个变量只会有一个有效，一个维度要么是一个数字，
 
 ONNX表示中的值分为两种：inputs/outputs值和attribute值，前者在运行时确定（包括来自Graph和Node输入输出、initializers，其中initializers可以来自外部的文件），后者是静态的文本。
 
-Attribute中可能存放不同数据类型的值，ONNX的做法是定义一个结构里面有所有可能的数据类型，然后1个Attribute中只有1个有效，示意如下（不符合数组语法）：
+Attribute中可能存放不同数据类型的值，ONNX的做法是定义一个结构里面有所有可能的数据类型成员，但是1个Attribute中只能有1种数据有效，示意如下（不符合数组语法）：
 
 ```c
 struct Attribute{
@@ -213,10 +213,6 @@ struct Attribute{
     Graph[] graphs;
 }
 ```
-
-
-
-
 
 ### 2.常见Op
 
@@ -383,5 +379,81 @@ model = onnx.helper.make_model(graph, producer_name='onnx_example')
 onnx.checker.check_model(model)
 onnx.save(model, "test13.onnx")
 
+```
+
+## 三.ONNX Runtime
+
+ONNX Runtime用于运行onnx格式的模型。
+
+### 1.安装
+
+##### ①CPU版本
+
+```bash
+$ pip install onnxruntime
+```
+
+##### ②GPU版本
+
+```bash
+$ pip install onnxruntime-gpu
+```
+
+### 2.使用
+
+```python
+import onnxruntime as ort
+
+session = ort.InferenceSession("test.onnx")
+result = session.run(None, {session.get_inputs()[0].name: x.numpy()})
+```
+
+注意这里run传入的input是一个“输入名：数据”字典而不是单独的数据。
+
+### 3.性能调优
+
+onnxruntime这里借用了chrome v8的性能监视器。
+
+##### ①获得.json
+
+在创建session时传入一个SessionOptions，其中设置enable_profiling为True。
+
+```python
+import onnxruntime as rt
+
+session_option = ort.SessionOptions()
+session_option.enable_profiling = True
+session = ort.InferenceSession("test25.onnx", sess_options=session_option)
+result = session.run(None, {session.get_inputs()[0].name: x.numpy()})
+```
+
+这样会在当前文件夹下创建一个名如`onnxruntime_profile__2021-04-13_14-13-22.json`的包含性能信息的json文件，
+
+##### ②打开谷歌浏览器，输入chrome://tracing/加载该json文件
+
+![image-20210413141730956](illustrations/image-20210413141730956.png)
+
+### 4.IOBinding
+
+IOBinding用于指定输入和输出所在的设备。onnxruntime中的输入和输出默认设备都为CPU，例如：
+
+```python
+result = session.run(None, {session.get_inputs()[0].name: x.numpy()})
+```
+
+网络在GPU上运行，x将会被拷贝到GPU上，运算完再从GPU拷到result中。
+
+如果上一轮结果当作下一轮输出循环调用一个模型，这种拷贝就需要避免，做法是从session获得io_bindding对象指定输入输出所在设备。
+
+```python
+X = np.random.randn(5,3).astype(np.float32)
+X_ortvalue = onnxruntime.OrtValue.ortvalue_from_numpy(X, 'cuda', 0)
+
+session = onnxruntime.InferenceSession('model.onnx')
+io_binding = session.io_binding()
+io_binding.bind_ortvalue_input('input', X_ortvalue)
+io_binding.bind_output('output', 'cuda')
+session.run_with_iobinding(io_binding)
+result = io_binding.get_outputs()[0].numpy()
 ```
 
