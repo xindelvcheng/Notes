@@ -27,3 +27,13 @@ print(result.shape)
 torch.Size([28, 3, 1, 1])
 ```
 
+##### 3.Python中的“前置声明”
+
+```python
+def f(i: 'A'):
+    return i
+
+
+class A:
+    pass
+```

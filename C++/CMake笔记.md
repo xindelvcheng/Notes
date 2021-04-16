@@ -119,6 +119,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 > 在CMake中CXX代表C++，据说因为考虑部分操作系统不支持+作为文件名的一部分，将+斜过来变成x。
 
+这个变量也可以在命令行提供，按照`-D<variable>=<value>`的规则。
+
 ##### ②创建编译条件
 
 使用option命令创建编译条件，可在if-elseif-else中使用。

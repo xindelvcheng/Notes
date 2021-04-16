@@ -214,6 +214,8 @@ struct Attribute{
 }
 ```
 
+实际上ONNX底层使用ProtoBuffer来序列化模型，不设定值的属性是不会写入磁盘的（与内存中的结构体不同，内存中的结构体只要声明了的成员不论有没有赋值都会占用内存）。
+
 ### 2.常见Op
 
 ##### ①Contant
@@ -441,14 +443,20 @@ IOBinding用于指定输入和输出所在的设备。onnxruntime中的输入和
 result = session.run(None, {session.get_inputs()[0].name: x.numpy()})
 ```
 
-网络在GPU上运行，x将会被拷贝到GPU上，运算完再从GPU拷到result中。
+安装的是onnxruntime-gpu时，网络在GPU上运行时，x将会被拷贝到GPU上，运算完再从GPU拷到result中。
 
 如果上一轮结果当作下一轮输出循环调用一个模型，这种拷贝就需要避免，做法是从session获得io_bindding对象指定输入输出所在设备。
+
+因为numpy和原生数据结构（列表、字典）都是在CPU上的，也不携带设备信息，需要包装为onnxruntime.OrtValue来表示一个放在其他设备（如GPU）上的数据。如下：
 
 ```python
 X = np.random.randn(5,3).astype(np.float32)
 X_ortvalue = onnxruntime.OrtValue.ortvalue_from_numpy(X, 'cuda', 0)
+```
 
+之后从session的工厂方法io_binding获得一个IOBinding对象，然后绑定输出，如下：
+
+```python
 session = onnxruntime.InferenceSession('model.onnx')
 io_binding = session.io_binding()
 io_binding.bind_ortvalue_input('input', X_ortvalue)

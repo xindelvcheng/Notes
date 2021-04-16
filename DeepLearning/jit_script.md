@@ -32,7 +32,7 @@ def an_error(x):
 
 > 一般地，TorchScript中的类型检查比Python中的更加严格
 
-##### 3.不是Tensor类型的参数需要显示给出类型，尽量使用Tensor不使用其他数据类型
+##### 3.不是Tensor类型的参数需要显示给出类型，不是Tensor参与控制流会被展开
 
 例如：
 
@@ -237,6 +237,8 @@ x.view(*shape)	# 报错
 
 ##### 10.不能转成ndarray使用numpy操作
 
+
+
 对trace和script两种导出方式都是如此
 
 ##### 11.不能将torch.nn.Module作为参数
@@ -250,6 +252,8 @@ def fc(linear_model: torch.nn.Module, x):
 ```
 
 
+
+……
 
 ##### 不能使用的高级API
 

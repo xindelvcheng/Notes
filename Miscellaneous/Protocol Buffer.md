@@ -1,4 +1,4 @@
-# Protocol Buffers
+# Protocol Buffer笔记
 
 Protocol Buffers是Google提出的跨语言跨平台序列化方案。
 
@@ -15,6 +15,8 @@ Protocol Buffers是Google提出的跨语言跨平台序列化方案。
 使用“Protocol Buffers语言”的message关键字创建一些“类”。
 
 ```protobuf
+syntax = "proto2";
+
 message Student{
     optional string name = 1;
     optional int32 age = 2;
@@ -24,7 +26,7 @@ message Student{
 
 与Java/C++相比多了数据类型前的required/optional字段标识符来表示该字段是否必选（必选会引起维护的问题因此避免使用，“必选”的判断应该放在应用层），以及设置默认值使用[default=]的形式，而这里的name=1意为该字段在二进制文件中的唯一标签为1。内建数据类型有bool, int32, float, double, string。使用message声明的Student则是自定义数据类型，此外也可以使用enum声明枚举。
 
-当字段修饰为repeated时，表明该字段为一个数组：
+当字段修饰为repeated时，表明该字段为一个数组（数量>=0）：
 
 ```protobuf
 message Teacher{

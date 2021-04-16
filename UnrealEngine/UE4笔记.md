@@ -1148,3 +1148,10 @@ new((EInternal*)X.GetObj())TClass(X);
 
 ##### +CreateDefaultSubobject命名有时候会导致Crash，时机未知（可能和蓝图派生类中C++中创建的控件会突然变成nullptr的问题有关）
 
+##### +UE4中长度单位总是cm，因此力的单位不是牛顿
+
+Ue4中AddForce：力的单位是$kgcm/s^2$而不是国际单位制的N（$kg\cdot m/s^2$），通常要在tick中持续调用；AddImpact是让物体瞬间拥有持续加速1秒的力而获得的速度。
+
+1N=100$kg\cdot cm/s^2$
+
+速度是单位是$cm/s$
